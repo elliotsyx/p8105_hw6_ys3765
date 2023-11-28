@@ -2,8 +2,21 @@
 title: "p8105_hw6_ys3765"
 author: "Yixiao Sun"
 date: "2023-11-27"
-output: html_document
+output: github_document
 ---
+
+```{r message=FALSE}
+library(tidyverse)
+library(rnoaa)
+library(broom)
+library(rsample)
+library(rsample)
+library(yardstick)
+library(tidymodels)
+library(dplyr)
+library(modelr)
+```
+
 
 ```{r}
 library(tidyverse)
@@ -51,4 +64,57 @@ ci_log_beta_product
 
 ```
 
+```{r}
+bw<-read_csv('~/Desktop/P8105_ Data Science/p8105_hw6_ys3765/birthweight.csv')%>%na.omit()
+```
+
+```{r}
+bw<-read_csv('~/Desktop/P8105_ Data Science/p8105_hw6_ys3765/birthweight.csv')%>%na.omit()
+summary(bw)
+categorical_vars <- c("babysex", "frace", "malform", "mrace")
+bw[categorical_vars] <- lapply(bw[categorical_vars], factor)
+
+initial_model <- lm(bwt ~ gaweeks, data = bw)
+summary(initial_model)
+
+birth_data <- bw %>% 
+  add_predictions(initial_model) %>% 
+  add_residuals(initial_model)
+
+ggplot(birth_data, aes(x = pred, y = resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Fitted values", y = "Residuals")
+
+
+model_length_ga <- lm(bwt ~ blength + gaweeks, data = bw)
+model_head_len_sex_interactions <- lm(bwt ~ bhead * blength * babysex, data = bw)
+
+
+```
+
+```{r}
+birth_data |> 
+  gather_predictions(initial_model, model_length_ga, model_head_len_sex_interactions) |> 
+  mutate(model = fct_inorder(model))
+
+cv_df =
+  crossv_mc(birth_data, 100) |> 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble))
+
+cv_df = 
+  cv_df |> 
+  mutate(
+    initial_model  = map(train, \(df) lm(bwt ~ gaweeks, data = birth_data)),
+    model_length_ga     = map(train, \(df) lm(bwt ~ blength + gaweeks, data = birth_data)),
+    model_head_len_sex_interactions  = map(train, \(df)  lm(bwt ~ bhead * blength * babysex, data = birth_data))) |> 
+  mutate(
+    rmse_initial = map2_dbl(initial_model, test, \(mod, df) rmse(model = mod, data = birth_data)),
+    rmse_length_ga  = map2_dbl(model_length_ga, test, \(mod, df) rmse(model = mod, data = birth_data)),
+    rmse_head_len_sex_interactions = map2_dbl(model_head_len_sex_interactions, test, \(mod, df) rmse(model = mod, data = birth_data)))
+
+print(cv_df)
+```
 

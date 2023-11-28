@@ -1,0 +1,54 @@
+---
+title: "p8105_hw6_ys3765"
+author: "Yixiao Sun"
+date: "2023-11-27"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2022-01-01",
+    date_max = "2022-12-31") |>
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) |>
+  select(name, id, everything())
+```
+
+```{r}
+library(rnoaa)
+library(tidyverse)
+library(broom)
+
+
+set.seed(123) # For reproducibility
+n_bootstraps <- 5000
+bootstrap_results <- tibble(r_squared = numeric(n_bootstraps), log_beta_product = numeric(n_bootstraps))
+
+for (i in 1:n_bootstraps) {
+  sample_data <- sample_n(weather_df, size = nrow(weather_df), replace = TRUE)
+  model <- lm(tmax ~ tmin + prcp, data = sample_data)
+  bootstrap_results$r_squared[i] <- glance(model)$r.squared
+  beta_estimates <- coef(model)
+  bootstrap_results$log_beta_product[i] <- log(beta_estimates[1] * beta_estimates[2])
+}
+names(bootstrap_results) <- c("r_squared", "log_beta_product")
+r_squared_values <- unlist(bootstrap_results$r_squared)
+
+hist(r_squared_values, main = "Distribution of r_squared", xlab = "r_squared")
+hist(bootstrap_results$log_beta_product, main = "Distribution of log_beta_product", xlab = "log_beta_product")
+
+ci_r_squared <- quantile(bootstrap_results$r_squared, c(0.025, 0.975))
+ci_log_beta_product <- quantile(bootstrap_results$log_beta_product, c(0.025, 0.975))
+
+ci_r_squared
+ci_log_beta_product
+
+```
+
+

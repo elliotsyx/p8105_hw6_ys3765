@@ -39,7 +39,7 @@ library(tidyverse)
 library(broom)
 
 
-set.seed(123) # For reproducibility
+set.seed(123)
 n_bootstraps <- 5000
 bootstrap_results <- tibble(r_squared = numeric(n_bootstraps), log_beta_product = numeric(n_bootstraps))
 
@@ -48,7 +48,8 @@ for (i in 1:n_bootstraps) {
   model <- lm(tmax ~ tmin + prcp, data = sample_data)
   bootstrap_results$r_squared[i] <- glance(model)$r.squared
   beta_estimates <- coef(model)
-  bootstrap_results$log_beta_product[i] <- log(beta_estimates[1] * beta_estimates[2])
+  bootstrap_results$log_beta_product[i] <- log(beta_estimates[2] * beta_estimates[3])
+  na.rm = TRUE
 }
 names(bootstrap_results) <- c("r_squared", "log_beta_product")
 r_squared_values <- unlist(bootstrap_results$r_squared)
@@ -56,8 +57,14 @@ r_squared_values <- unlist(bootstrap_results$r_squared)
 hist(r_squared_values, main = "Distribution of r_squared", xlab = "r_squared")
 hist(bootstrap_results$log_beta_product, main = "Distribution of log_beta_product", xlab = "log_beta_product")
 
+count_log_beta_product <- filter(bootstrap_results, is.nan(log_beta_product))%>%count()
+
+proportion_log_beta_product <- count_log_beta_product/5000
+
+print(proportion_log_beta_product)
+
 ci_r_squared <- quantile(bootstrap_results$r_squared, c(0.025, 0.975))
-ci_log_beta_product <- quantile(bootstrap_results$log_beta_product, c(0.025, 0.975))
+ci_log_beta_product <- quantile(bootstrap_results$log_beta_product, c(0.025, 0.975), na.rm = TRUE)
 
 ci_r_squared
 ci_log_beta_product

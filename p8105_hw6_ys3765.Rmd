@@ -80,6 +80,8 @@ ci_r_squared
 ci_log_beta_product
 
 ```
+As we can see from the first density plot, the r squared values are almost normally distributed. As we moved to the second plot, the distribution becomes left skewed. As we moved to the log transformation, a lot of null values produced. Approximately `r print(proportion_log_beta_product)` values are left to be valid. For the r squared value, the 95 percent confidence interval is between `r ci_r_squared`. And for the log beta prodects value, the 95 percent confidence interval is between `r ci_log_beta_product`.
+
 
 # Problem 3
 ```{r}
@@ -92,7 +94,7 @@ summary(bw)
 categorical_vars <- c("babysex", "frace", "malform", "mrace")
 bw[categorical_vars] <- lapply(bw[categorical_vars], factor)
 
-initial_model <- lm(bwt ~ gaweeks, data = bw)
+initial_model <- lm(bwt ~babysex + blength + delwt + gaweeks + mheight + mrace + ppwt +smoken, data = bw)
 summary(initial_model)
 
 birth_data <- bw %>% 
@@ -111,6 +113,8 @@ model_head_len_sex_interactions <- lm(bwt ~ bhead * blength * babysex, data = bw
 
 ```
 
+My proposed model is to use birthweight to model with "babysex + blength + delwt + gaweeks + mheight + mrace + ppwt +smoken" all these variables as our basic model for the later use to compare with the later two others. Then we add prediction and add residuals into the model, here is the plot for the fitted values and residuals.
+
 ```{r}
 birth_data |> 
   gather_predictions(initial_model, model_length_ga, model_head_len_sex_interactions) |> 
@@ -125,7 +129,7 @@ cv_df =
 cv_df = 
   cv_df |> 
   mutate(
-    initial_model  = map(train, \(df) lm(bwt ~ gaweeks, data = birth_data)),
+    initial_model  = map(train, \(df) lm(bwt ~ babysex + blength + delwt + gaweeks + mheight + mrace + ppwt +smoken, data = birth_data)),
     model_length_ga     = map(train, \(df) lm(bwt ~ blength + gaweeks, data = birth_data)),
     model_head_len_sex_interactions  = map(train, \(df)  lm(bwt ~ bhead * blength * babysex, data = birth_data))) |> 
   mutate(

@@ -17,7 +17,7 @@ library(dplyr)
 library(modelr)
 ```
 
-
+# Problem 2
 ```{r}
 library(tidyverse)
 weather_df = 
@@ -33,13 +33,13 @@ weather_df =
   select(name, id, everything())
 ```
 
-```{r}
+```{r warning = FALSE}
 library(rnoaa)
 library(tidyverse)
 library(broom)
 
 
-set.seed(123)
+set.seed(1)
 n_bootstraps <- 5000
 bootstrap_results <- tibble(r_squared = numeric(n_bootstraps), log_beta_product = numeric(n_bootstraps))
 
@@ -54,8 +54,18 @@ for (i in 1:n_bootstraps) {
 names(bootstrap_results) <- c("r_squared", "log_beta_product")
 r_squared_values <- unlist(bootstrap_results$r_squared)
 
-hist(r_squared_values, main = "Distribution of r_squared", xlab = "r_squared")
-hist(bootstrap_results$log_beta_product, main = "Distribution of log_beta_product", xlab = "log_beta_product")
+r_squared_distribution <- bootstrap_results%>%
+  ggplot(aes(x = r_squared))+
+  geom_density()+
+  labs(x = "r_squared",title =  "Distribution of r_squared")
+
+log_beta_distribution <- bootstrap_results%>%
+  ggplot(aes(x = bootstrap_results$log_beta_product))+
+  geom_density()+
+  labs(x = "log_beta_product",title =  "Distribution of log_beta_product")
+ 
+print(r_squared_distribution)
+print(log_beta_distribution)
 
 count_log_beta_product <- filter(bootstrap_results, is.nan(log_beta_product))%>%count()
 
@@ -63,14 +73,15 @@ proportion_log_beta_product <- count_log_beta_product/5000
 
 print(proportion_log_beta_product)
 
-ci_r_squared <- quantile(bootstrap_results$r_squared, c(0.025, 0.975))
-ci_log_beta_product <- quantile(bootstrap_results$log_beta_product, c(0.025, 0.975), na.rm = TRUE)
+ci_r_squared <- quantile(bootstrap_results$r_squared, c(0.025, 0.975),na.rm = T) %>% knitr::kable()
+ci_log_beta_product <- quantile(bootstrap_results$log_beta_product, c(0.025, 0.975), na.rm = T)%>%knitr::kable()
 
 ci_r_squared
 ci_log_beta_product
 
 ```
 
+# Problem 3
 ```{r}
 bw<-read_csv('~/Desktop/P8105_ Data Science/p8105_hw6_ys3765/birthweight.csv')%>%na.omit()
 ```
@@ -118,10 +129,20 @@ cv_df =
     model_length_ga     = map(train, \(df) lm(bwt ~ blength + gaweeks, data = birth_data)),
     model_head_len_sex_interactions  = map(train, \(df)  lm(bwt ~ bhead * blength * babysex, data = birth_data))) |> 
   mutate(
-    rmse_initial = map2_dbl(initial_model, test, \(mod, df) rmse(model = mod, data = birth_data)),
-    rmse_length_ga  = map2_dbl(model_length_ga, test, \(mod, df) rmse(model = mod, data = birth_data)),
-    rmse_head_len_sex_interactions = map2_dbl(model_head_len_sex_interactions, test, \(mod, df) rmse(model = mod, data = birth_data)))
+    rmse_initial = map2_dbl(initial_model, test, \(mod, df) rmse(model = mod, data = df)),
+    rmse_length_ga  = map2_dbl(model_length_ga, test, \(mod, df) rmse(model = mod, data = df)),
+    rmse_head_len_sex_interactions = map2_dbl(model_head_len_sex_interactions, test, \(mod, df) rmse(model = mod, data = df)))
 
 print(cv_df)
+
+cv_df |> 
+  select(starts_with("rmse")) |> 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") |> 
+  mutate(model = fct_inorder(model)) |> 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
